@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
             // print out the number of CMR
             //
             for (uint file_no=1;file_no<=NUM_FILES;file_no++) {
+                // fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][byte_index][inf_key]);
                 fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][0][inf_key]);
             }
 
