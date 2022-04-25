@@ -12,7 +12,7 @@
 using namespace std;
 
 #define NUM_FILES 100000
-#define MAX_BYTES_IDX 16
+#define MAX_BYTES_IDX 1
 #define MAX_KEY 256
 
 int main(int argc, char **argv) {
@@ -81,7 +81,8 @@ int main(int argc, char **argv) {
                 //
                 // store the number of CMR
                 //
-                CMRs[file_no-1][byte_index][inf_key] = cnt;
+                // CMRs[file_no-1][byte_index][inf_key] = cnt;
+                CMRs[file_no-1][0][inf_key] = cnt;
             }
         // }
     }
@@ -109,7 +110,7 @@ int main(int argc, char **argv) {
             // print out the number of CMR
             //
             for (uint file_no=1;file_no<=NUM_FILES;file_no++) {
-                fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][byte_index][inf_key]);
+                fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][0][inf_key]);
             }
 
 
