@@ -11,6 +11,10 @@
 
 using namespace std;
 
+#define NUM_FILES 100000
+#define MAX_BYTES_IDX 16
+#define MAX_KEY 256
+
 int main(int argc, char **argv) {
     // //
     // // check if Td4 is an inverse table of Te4
@@ -25,47 +29,22 @@ int main(int argc, char **argv) {
 
 
     //check input values and define shared variables
-    if(argc < 4) {
-        printf("USAGE: generator FILE ByteIndex InfKey\n");
+    if(argc < 3) {
+        printf("USAGE: generator FILE\n");
         return 1;
     }
 
     string path(argv[1]);
     string ct;
-    uint byte_index = atoi(argv[2]);
-    uint inf_key = atoi(argv[3]);
-    string output_path = "./data";
-    output_path += "/byte" + to_string(byte_index);
-
-    if(byte_index >= 16 ) {
-        printf("ByteIndex must be lower than 16\n");
-        return 1;
-    }
-    if(inf_key >= 256) {
-        printf("InfKey must be lower than 256\n");
-        return 1;
-    }
+    // char *** CMRs = (char***)malloc(NUM_FILES*MAX_BYTES_IDX*MAX_KEY);
+    static char CMRs[NUM_FILES][MAX_BYTES_IDX][MAX_KEY];
     
 
-    //
-    // get output file ready
-    //
-    mkdir(output_path.c_str(),0777);
-    string output_filename = output_path + "/key" + to_string(inf_key);
-    FILE* fo = fopen(output_filename.c_str(),"a");
-
-    if(fo==NULL){
-        printf("Cannot open the output File : %s \n",output_filename.c_str());
-        return 1;
-    }
-
-
-    for (int file_no=1;file_no<100000;file_no++){
+    for (uint file_no=1;file_no<=NUM_FILES;file_no++){
         //
         //open and read file
         //
         string filename = path;
-        // int file_no=1;
         filename += to_string(file_no) + ".txt";
         FILE * f = fopen(filename.c_str(),"rb");
 
@@ -77,38 +56,65 @@ int main(int argc, char **argv) {
         fread(&ct[0],1,f_size,f);
         fclose(f);
         
-        // printf("%s\n",ct.c_str());
-        // printf("%d\n",ct.size());
-        // printf("%d,%d\n",byte_index,inf_key);
-
 
         //
         //compute the number of CMR for given byte index and inferred key
         //
-        char bucket[16] = {0};
-        for(int tid=0;tid<32;tid++){
-            unsigned char ct_byte_for_tid = ct.c_str()[tid*16+byte_index];
-            unsigned char inv_idx_tt = ct_byte_for_tid ^ inf_key;
-            unsigned char value = Td4[inv_idx_tt]>>24;
-            bucket[value>>4]++;
-        }
-        int cnt = 0;
-        for(int index=0;index<16;index++){
-            cnt += bucket[index]>0;
-        }
-        // printf("%d:%d\n",file_no,cnt);
+        for(uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
+            for(uint inf_key = 0; inf_key<MAX_KEY;inf_key++) {
+                char bucket[16] = {0};
+                for(int tid=0;tid<32;tid++){
+                    unsigned char ct_byte_for_tid = ct.c_str()[tid*16+byte_index];
+                    unsigned char inv_idx_tt = ct_byte_for_tid ^ inf_key;
+                    unsigned char value = Td4[inv_idx_tt]>>24;
+                    bucket[value>>4]++;
+                }
+                int cnt = 0;
+                for(int index=0;index<16;index++){
+                    cnt += bucket[index]>0;
+                }
 
-
-        //
-        // print out the number of CMR
-        //
-        fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,cnt);
+                //
+                // store the number of CMR
+                //
+                CMRs[file_no-1][byte_index][inf_key] = cnt;
+            }
+        }
     }
 
-    //
-    // close the output file
-    //
-    fclose(fo);
+    string output_path = "./data";
+    mkdir(output_path.c_str(),0777);
+    for (uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
+        for(uint inf_key = 0; inf_key<MAX_KEY;inf_key++) {
+            string byte_path = output_path + "/byte" + to_string(byte_index);
+            mkdir(byte_path.c_str(),0777);
+
+            //
+            // get output file ready
+            //
+            string output_filename = byte_path + "/key" + to_string(inf_key);
+            FILE* fo = fopen(output_filename.c_str(),"a");
+
+            if(fo==NULL){
+                printf("Cannot open the output File : %s \n",output_filename.c_str());
+                return 1;
+            }
+
+
+            //
+            // print out the number of CMR
+            //
+            for (uint file_no=1;file_no<=NUM_FILES;file_no++) {
+                fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][byte_index][inf_key]);
+            }
+
+
+            //
+            // close the output file
+            //
+            fclose(fo);
+        }
+    }
 
     return 0;
 }
