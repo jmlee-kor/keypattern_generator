@@ -12,7 +12,7 @@
 using namespace std;
 
 #define NUM_FILES 100000
-#define MAX_BYTES_IDX 1
+#define MAX_BYTES_IDX 16
 #define MAX_KEY 256
 
 int main(int argc, char **argv) {
@@ -29,20 +29,14 @@ int main(int argc, char **argv) {
 
 
     //check input values and define shared variables
-    if(argc < 3) {
-        printf("USAGE: generator FILE ByteIndex\n");
+    if(argc < 2) {
+        printf("USAGE: generator FILE\n");
         return 1;
     }
 
     string path(argv[1]);
     string ct;
-    // char *** CMRs = (char***)malloc(NUM_FILES*MAX_BYTES_IDX*MAX_KEY);
     static char CMRs[NUM_FILES][MAX_BYTES_IDX][MAX_KEY];
-    uint byte_index = atoi(argv[2]);
-    if(byte_index >=16) {
-        printf("ByteIndex must be lower than 16\n");
-        return 1;
-    }
 
     for (uint file_no=1;file_no<=NUM_FILES;file_no++){
         //
@@ -64,7 +58,7 @@ int main(int argc, char **argv) {
         //
         //compute the number of CMR for given byte index and inferred key
         //
-        // for(uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
+        for(uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
             for(uint inf_key = 0; inf_key<MAX_KEY;inf_key++) {
                 char bucket[16] = {0};
                 for(int tid=0;tid<32;tid++){
@@ -81,15 +75,14 @@ int main(int argc, char **argv) {
                 //
                 // store the number of CMR
                 //
-                // CMRs[file_no-1][byte_index][inf_key] = cnt;
-                CMRs[file_no-1][0][inf_key] = cnt;
+                CMRs[file_no-1][byte_index][inf_key] = cnt;
             }
-        // }
+        }
     }
 
     string output_path = "./data";
     mkdir(output_path.c_str(),0777);
-    // for (uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
+    for (uint byte_index = 0; byte_index<MAX_BYTES_IDX;byte_index++) {
         for(uint inf_key = 0; inf_key<MAX_KEY;inf_key++) {
             string byte_path = output_path + "/byte" + to_string(byte_index);
             mkdir(byte_path.c_str(),0777);
@@ -110,8 +103,7 @@ int main(int argc, char **argv) {
             // print out the number of CMR
             //
             for (uint file_no=1;file_no<=NUM_FILES;file_no++) {
-                // fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][byte_index][inf_key]);
-                fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no][0][inf_key]);
+                fprintf(fo,"sampleNo:%d,CMRs:%d\n",file_no,CMRs[file_no-1][byte_index][inf_key]);
             }
 
 
@@ -120,7 +112,7 @@ int main(int argc, char **argv) {
             //
             fclose(fo);
         }
-    // }
+    }
 
     return 0;
 }
